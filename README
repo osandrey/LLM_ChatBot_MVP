@@ -1,0 +1,7 @@
+.env file:
+    OPENAI_API_KEY=
+
+Start venv and requirements.txt
+To start project use command:streamlit run main.py
+
+
