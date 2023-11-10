@@ -1,7 +1,7 @@
 .env file:
     OPENAI_API_KEY=
 
-Start venv and start command: pip install langchain pypdf chromas sentence-transformers python-decouple openai tiktoken lark streamlit
+Start venv and start command: pip install langchain pypdf chromadb sentence-transformers python-decouple openai tiktoken lark streamlit
 
 Start file LLM_ChatBot/documentLoading/load_n_split.py first to read the pdf file and add it to vector_db
 
