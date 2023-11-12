@@ -129,6 +129,7 @@ def handle_userinput(user_question):
 
 
 def main():
+
     load_dotenv()
     st.set_page_config(page_title="Chat with multiple PDFs",
                        page_icon=":books:")
@@ -146,7 +147,8 @@ def main():
         st.button("Create new chat")
     with col2:
         if st.button("Save file"):
-            save_file()
+            save_file(raw_text)
+
     with col3:
         if st.button("Load file"):
             load = load_file()
@@ -173,6 +175,7 @@ def main():
                     html_doc = loader.load()
                     with st.spinner("Processing"):
                         raw_text = get_html_text(html_doc)
+                        save_file(raw_text)
                         chat(raw_text)
 
             elif choice == "Upload PDF file":
@@ -180,6 +183,7 @@ def main():
                 if st.button("Process"):
                     with st.spinner("Processing"):
                         raw_text = get_pdf_text(new_doc)
+                        save_file(raw_text)
                         chat(raw_text)
 
             elif choice == "Upload TXT file":
@@ -187,6 +191,7 @@ def main():
                 if st.button("Process"):
                     with st.spinner("Processing"):
                         raw_text = get_txt_text(new_doc)
+                        save_file(raw_text)
                         chat(raw_text)
 
             elif choice == "Upload DOCX file":
@@ -194,10 +199,12 @@ def main():
                 if st.button("Process"):
                     with st.spinner("Processing"):
                         raw_text = get_docx_text(new_doc)
+                        save_file(raw_text)
                         chat(raw_text)
 
         except Exception as ex:
             st.error(f"Error input!")
+
 
 
 if __name__ == '__main__':
