@@ -1,4 +1,6 @@
+import os
 import requests
+import pickle
 import streamlit as st
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
@@ -14,8 +16,35 @@ from langchain.llms import HuggingFaceHub
 from langchain.document_loaders import WebBaseLoader
 
 
+def save_file(raw_text):
+    try:
+        with open("history/history.txt", "w", encoding="utf-8") as file:
+            file.write(raw_text)
+        st.success("Saved successfully.")
+    except Exception as er:
+        st.warning(f"Error: {er}. No file to save.")
+
+
+def load_file():
+    try:
+        uploaded_file = st.file_uploader("Choose a file", type="txt")
+        if uploaded_file is not None:
+            load = uploaded_file.read().decode("utf-8")
+            st.success("File loaded successfully.")
+            return load
+        else:
+            st.warning("Please choose a valid file.")
+    except Exception as e:
+        st.warning(f"Error loading file: {e}")
+
+
+def close_chat():
+    st.session_state.conversation = None
+    st.session_state.chat_history = None
+    st.success("Chat closed.")
+
+
 def chat(raw_text):
-    st.write(raw_text)
     text_chunks = get_text_chunks(raw_text)
     vectorstore = get_vectorstore(text_chunks)
     st.session_state.conversation = get_conversation_chain(vectorstore)
@@ -84,16 +113,19 @@ def get_conversation_chain(vectorstore):
 
 
 def handle_userinput(user_question):
-    response = st.session_state.conversation({'question': user_question})
-    st.session_state.chat_history = response['chat_history']
+    if st.session_state.conversation is not None:
+        response = st.session_state.conversation({'question': user_question})
+        st.session_state.chat_history = response['chat_history']
 
-    for i, message in enumerate(st.session_state.chat_history):
-        if i % 2 == 0:
-            st.write(user_template.replace(
-                "{{MSG}}", message.content), unsafe_allow_html=True)
-        else:
-            st.write(bot_template.replace(
-                "{{MSG}}", message.content), unsafe_allow_html=True)
+        for i, message in enumerate(st.session_state.chat_history):
+            if i % 2 == 0:
+                st.write(user_template.replace(
+                    "{{MSG}}", message.content), unsafe_allow_html=True)
+            else:
+                st.write(bot_template.replace(
+                    "{{MSG}}", message.content), unsafe_allow_html=True)
+    else:
+        pass
 
 
 def main():
@@ -108,6 +140,21 @@ def main():
         st.session_state.chat_history = None
 
     st.header("Chat with multiple PDFs :books:")
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.button("Create new chat")
+    with col2:
+        if st.button("Save file"):
+            save_file()
+    with col3:
+        if st.button("Load file"):
+            load = load_file()
+            if load is not None:
+                st.write(load)
+    with col4:
+        st.button("Close Chat", on_click=close_chat)
+
     user_question = st.text_input("Ask a question about your documents:")
     if user_question:
         handle_userinput(user_question)
