@@ -16,38 +16,41 @@ from langchain.llms import HuggingFaceHub
 from langchain.document_loaders import WebBaseLoader
 
 
-def save_file(raw_text):
-    try:
-        with open("history/history.txt", "w", encoding="utf-8") as file:
-            file.write(raw_text)
-        st.success("Saved successfully.")
-    except Exception as er:
-        st.warning(f"Error: {er}. No file to save.")
-
-
-def load_file():
-    try:
-        uploaded_file = st.file_uploader("Choose a file", type="txt")
-        if uploaded_file is not None:
-            load = uploaded_file.read().decode("utf-8")
-            st.success("File loaded successfully.")
-            return load
-        else:
-            st.warning("Please choose a valid file.")
-    except Exception as e:
-        st.warning(f"Error loading file: {e}")
-
-
-def close_chat():
-    st.session_state.conversation = None
-    st.session_state.chat_history = None
-    st.success("Chat closed.")
-
-
 def chat(raw_text):
     text_chunks = get_text_chunks(raw_text)
     vectorstore = get_vectorstore(text_chunks)
     st.session_state.conversation = get_conversation_chain(vectorstore)
+
+
+def save_file(raw_text):
+    try:
+        with open("history/history.txt", "w", encoding="utf-8") as file:
+            file.write(raw_text)
+            st.success("Saved successfully.")
+    except Exception as er:
+        st.warning(f"Error: {er}. No file to save.")
+
+
+def get_load_text(file_name):
+    if file_name is not None:
+        try:
+            with open(file_name, "r", encoding="utf-8") as file:
+                return file.read()
+        except Exception as e:
+            st.warning(f"Error loading file: {e}")
+    else:
+        st.warning("No file selected.")
+        return ""
+
+
+def close_chat():
+    if st.session_state.conversation is not None:
+        st.session_state.conversation = None
+        st.session_state.chat_history = None
+        st.success("Chat closed.")
+        st.experimental_rerun()
+    else:
+        st.warning("No active chat to close.")
 
 
 def get_html_text(new_doc):
@@ -119,17 +122,14 @@ def handle_userinput(user_question):
 
         for i, message in enumerate(st.session_state.chat_history):
             if i % 2 == 0:
-                st.write(user_template.replace(
-                    "{{MSG}}", message.content), unsafe_allow_html=True)
+                st.write(user_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
             else:
-                st.write(bot_template.replace(
-                    "{{MSG}}", message.content), unsafe_allow_html=True)
+                st.write(bot_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
     else:
         pass
 
 
 def main():
-
     load_dotenv()
     st.set_page_config(page_title="Chat with multiple PDFs",
                        page_icon=":books:")
@@ -140,33 +140,22 @@ def main():
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
 
-    st.header("Chat with multiple PDFs :books:")
-    col1, col2, col3, col4 = st.columns(4)
+    # st.button("Create new chat")
 
-    with col1:
-        st.button("Create new chat")
-    with col2:
-        if st.button("Save file"):
-            save_file(raw_text)
-
-    with col3:
-        if st.button("Load file"):
-            load = load_file()
-            if load is not None:
-                st.write(load)
-    with col4:
-        st.button("Close Chat", on_click=close_chat)
-
-    user_question = st.text_input("Ask a question about your documents:")
+    user_question = st.text_input("Ask a question about your documents:books:")
     if user_question:
         handle_userinput(user_question)
+
+    if st.button("Close Chat"):
+        close_chat()
 
     with st.sidebar:
         st.subheader("Your documents")
         choice = st.radio("Choose an option:", ("Upload PDF file",
                                                 "Upload TXT file",
                                                 "Upload DOCX file",
-                                                "Enter web link", ))
+                                                "Enter web link",
+                                                "Upload Saved file",))
         try:
             if choice == "Enter web link":
                 new_doc = st.text_input("Enter a web link:")
@@ -202,9 +191,15 @@ def main():
                         save_file(raw_text)
                         chat(raw_text)
 
-        except Exception as ex:
-            st.error(f"Error input!")
+            elif choice == "Upload Saved file":
+                new_doc = st.file_uploader("Upload your Saved file and click on 'Process'", accept_multiple_files=True)
+                if st.button("Process"):
+                    with st.spinner("Processing"):
+                        raw_text = get_txt_text(new_doc)
+                        chat(raw_text)
 
+        except Exception as ex:
+            st.error(f"{ex} Error input!")
 
 
 if __name__ == '__main__':
